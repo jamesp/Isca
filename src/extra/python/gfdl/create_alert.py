@@ -15,7 +15,7 @@ def disk_space_alert(dir, basedir, exp_name, month, recipient_email_address,limi
     
     if free_space_in_gb < limit:
         alert_message="Disk space less than "+str(limit)+"Gb before running month number "+str(month)+" in experiment "+exp_name
-        print alert_message+", sending email"
+        print(alert_message+", sending email")
         send.send_email_fn(recipient_email_address, alert_message, basedir)
     else:
         print 'Disk space more than ' + str(limit) + 'Gb - not sending alert email.'

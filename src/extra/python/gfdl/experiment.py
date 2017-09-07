@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 import sh
 import pdb
 
-import create_alert
+# from gfdl import create_alert
 import getpass
 
 P = os.path.join
@@ -41,12 +41,16 @@ try:
     GFDL_BASE        = os.environ['GFDL_BASE']
     GFDL_WORK        = os.environ['GFDL_WORK']
     GFDL_DATA        = os.environ['GFDL_DATA']
-
-
-except Exception, e:
-    print('Environment variables GFDL_BASE, GFDL_WORK, GFDL_DATA must be set')
+except Exception as e:
+    log.error('Environment variables GFDL_BASE, GFDL_WORK, GFDL_DATA must be set')
     exit(0)
 
+try:
+    GFDL_ENV = os.environ['GFDL_ENV']
+except:
+    import socket
+    GFDL_ENV = socket.getfqdn()
+    log.info('Environment variable GFDL_ENV not set, using "%s".' % GFDL_ENV)
 
 try:
     _screen_window = os.environ['WINDOW']
@@ -62,7 +66,7 @@ def set_screen_title(title):
             sh.screen('-X', 'redisplay')
         except Exception as e:
             log.warning('Screen title could not be changed.')
-            log.debug(e.message)
+            log.debug(e)
 
 class CompilationError(Exception):
     pass
@@ -72,7 +76,6 @@ class Experiment(object):
     def __init__(self, name, commit=None, repo=None, overwrite_data=False,run_idb=False):
         super(Experiment, self).__init__()
         self.name = name
-
 
         # set the default locations of working directory,
         # executable directory, restart file storage, and
@@ -90,6 +93,7 @@ class Experiment(object):
         self.restartdir = P(self.workdir, 'restarts') # where restarts will be stored
         self.rundir = P(self.workdir, 'run')          # temporary area an individual run will be performed
         self.datadir = P(GFDL_DATA, self.name)        # where run data will be moved to upon completion
+        self.env_source = P(GFDL_BASE, 'src', 'extra', 'env', GFDL_ENV)
 
         self.log = log
 
@@ -189,7 +193,7 @@ class Experiment(object):
             sh.git.status()
         except Exception as e:
             log.info('Repository not found at %r. Cloning.' % self.srcdir)
-            log.debug(e.message)
+            log.debug(e)
             try:
                 sh.git.clone(self.repo, self.srcdir)
             except Exception as e:
@@ -282,7 +286,8 @@ class Experiment(object):
             'srcdir': self.srcdir,
             'workdir': self.workdir,
             'compile_flags': ' '.join(self.compile_flags),
-            'run_idb': self.run_idb
+            'run_idb': self.run_idb,
+            'env_source': self.env_source
         }
 
         self.check_path_names()
@@ -332,8 +337,6 @@ class Experiment(object):
         indir = P(self.rundir, 'INPUT')
         outdir = P(self.datadir, 'run%03d' % month)
 
-
-
         if os.path.isdir(outdir):
             if self.overwrite_data or overwrite_data:
                 log.warning('Data for month %d already exists and overwrite_data is True. Overwriting.' % month)
@@ -373,6 +376,7 @@ class Experiment(object):
             'rundir': self.rundir,
             'execdir': self.execdir,
             'srcdir': self.srcdir,
+            'env_source': self.env_source,
             'restart_file': restart_file,
             'num_cores': num_cores,
             'run_idb': run_idb,
@@ -385,10 +389,10 @@ class Experiment(object):
         t = runmonth.stream(**vars).dump(P(self.rundir, 'runmonth.sh'))
 
     # Check scratch space has enough disk space
-        if email_alerts:
-            if email_address_for_alerts is None:
-                email_address_for_alerts = getpass.getuser()+'@exeter.ac.uk'
-            create_alert.run_alerts(self.execdir, GFDL_BASE, self.name, month, email_address_for_alerts, disk_space_limit)
+        #if email_alerts:
+        #    if email_address_for_alerts is None:
+        #        email_address_for_alerts = getpass.getuser()+'@exeter.ac.uk'
+        #    create_alert.run_alerts(self.execdir, GFDL_BASE, self.name, month, email_address_for_alerts, disk_space_limit)
 
         log.info("Running GFDL for month %r" % month)
         self._cur_month = month
