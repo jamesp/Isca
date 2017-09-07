@@ -14,7 +14,7 @@ exp = gfdl.experiment.Experiment('ref_earth_grey')
 
 # compiles source code to exp.execdir
 exp.disable_rrtm()
-if 'compile' in sys.ARGV:
+if 'compile' in sys.argv:
     exp.compile()
 
 # setup the namelist:
