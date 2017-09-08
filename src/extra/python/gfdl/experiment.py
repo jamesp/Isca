@@ -3,6 +3,7 @@ import copy
 import logging
 import os
 import re
+import sys
 
 import f90nml
 from jinja2 import Environment, FileSystemLoader
@@ -20,7 +21,7 @@ mkdir = sh.mkdir.bake('-p')
 
 log = logging.getLogger('gfdl')
 log.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
+ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 log.addHandler(ch)
@@ -155,6 +156,15 @@ class Experiment(object):
         new_pathname = P(self.rundir, filename)
         self.templates.get_template(filename).stream(values).dump(new_pathname)
         self.path_names.insert(0, new_pathname)
+
+    def log_to_file(self, filename, level=logging.DEBUG, formatter=None):
+        fh = logging.FileHandler(filename)
+        fh.setLevel(logging.DEBUG)
+        if formatter is None:
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.log.addHandler(fh)
+        return fh
 
     def rm_workdir(self):
         try:
@@ -332,7 +342,7 @@ class Experiment(object):
 
 
 
-    def run(self, month, restart_file=None, use_restart=True, num_cores=8, overwrite_data=False, light=False, run_idb=False, experiment_restart=None, email_alerts=True, email_address_for_alerts=None, disk_space_limit=20):
+    def run(self, month, restart_file=None, use_restart=True, multi_node=False, num_cores=8, overwrite_data=False, light=False, run_idb=False, experiment_restart=None, email_alerts=True, email_address_for_alerts=None, disk_space_limit=20):
 
         indir = P(self.rundir, 'INPUT')
         outdir = P(self.datadir, 'run%03d' % month)
@@ -355,7 +365,10 @@ class Experiment(object):
 
         for filename in self.inputfiles:
             sh.cp([filename, P(indir, os.path.split(filename)[1])])
-
+        
+        mpirun_opts = ''
+        if multi_node:
+            mpirun_opts += ' -bootstrap pbsdsh -f $PBS_NODEFILE'
 
         if use_restart:
             if not restart_file:
@@ -377,6 +390,7 @@ class Experiment(object):
             'execdir': self.execdir,
             'srcdir': self.srcdir,
             'env_source': self.env_source,
+            'mpirun_opts': mpirun_opts,
             'restart_file': restart_file,
             'num_cores': num_cores,
             'run_idb': run_idb,

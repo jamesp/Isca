@@ -31,7 +31,7 @@ if [ $debug == True ]; then
    echo "Opening idb for debugging"
    idb -gdb  fms_moist.x
 else
-  mpirun  -np {{ num_cores }} {{ execdir }}/fms_moist.x
+  mpirun {{ mpirun_opts }} -np {{ num_cores }}  {{ execdir }}/fms_moist.x
 fi
 
 err_code=$?
