@@ -13,3 +13,6 @@ def test_isca_codebase():
 def test_dry_codebase():
     cb = DryCodeBase.from_directory(GFDL_BASE)
     cb.compile()
+
+if __name__=='__main__':
+    test_isca_codebase()

@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 
@@ -362,8 +363,8 @@ class Experiment(Logger, EventEmitter):
     def derive(self, new_experiment_name):
         """Derive a new experiment based on this one."""
         new_exp = Experiment(new_experiment_name, self.codebase)
-        new_exp.namelist = self.namelist.copy()
-        new_exp.diag_table = self.diag_table.copy()
+        new_exp.namelist = copy.deepcopy(self.namelist)
+        new_exp.diag_table = copy.deepcopy(self.diag_table)
         new_exp.inputfiles = self.inputfiles[:]
 
         return new_exp
